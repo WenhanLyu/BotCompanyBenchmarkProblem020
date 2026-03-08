@@ -247,7 +247,12 @@ int query_ranks(void *p) {
     unsigned char meta = metadata[idx];
     int rank = meta & 0x7F;
     
-    /* Always search for containing free blocks (not just when rank==0) */
+    /* Early return: If this page is a free block head, return its rank immediately */
+    if (meta & 0x80) {
+        return rank;
+    }
+    
+    /* Not a free block head - search for containing free blocks */
     /* After coalescing, continuation pages may have stale allocated rank values */
     /* Try each rank from largest to smallest */
     for (int r = MAXRANK; r >= 1; r--) {
