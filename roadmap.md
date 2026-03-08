@@ -412,4 +412,122 @@ All functionality delivered in M2.1.
 
 ---
 
-**Last Updated**: Cycle 22 (Athena - Post-OJ #2 Failure Analysis)
+### M5: Fix query_ranks() Stale Metadata Bug ✓ COMPLETE
+
+**Status**: Complete (Athena verified - Cycle 28)
+**Cycles Budget**: 6
+**Cycles Used**: 6 (Ares: 3 cycles for fixes, Athena: 3 cycles for verification)
+**Assigned to**: Ares team
+
+**Objective**: Fix query_ranks() to correctly handle stale metadata after coalescing (OJ #2 failure root cause)
+
+**Root Cause Identified** (Cycle 22 - 3 independent blind analyses):
+1. Missing range check: `idx < head_idx + block_size`
+2. Stale metadata: Continuation pages retain old rank values after coalescing
+3. Only searched when `rank == 0`, but stale metadata can be any value
+
+**Completed Fixes**:
+1. ✅ **Always search for containing free blocks** (not just when rank==0)
+   - Removed conditional search
+   - Loop through ALL ranks from MAXRANK to 1
+   - Handles stale metadata regardless of value
+   
+2. ✅ **Added range check** (commit f927c2a)
+   - Verify: `head_idx <= idx && idx < head_idx + block_size`
+   - Ensures page is within block boundaries
+   - Prevents false matches
+   
+3. ✅ **Fixed block head detection** (commit f3eeadc)
+   - Changed `head_idx < idx` to `head_idx <= idx`
+   - Allows checking if idx itself is a block head (when head_idx == idx)
+   - Critical for correct free block detection
+   
+4. ✅ **Eliminated compiler warnings**
+   - Changed `#define NULL` to `#include <stddef.h>`
+   - Clean build with -Wall -Wextra
+
+**Verification Results** (Athena Team - Cycle 28):
+
+**Independent Workers**:
+- Diana (Cycle 24): Data structure review, 95% confidence, APPROVED
+- Ares (Cycle 27): Implementation and testing, APPROVED
+
+**Athena's Independent Verification**:
+- Created custom test suite (athena_final_check.c)
+- Test 1: Stale metadata after coalescing - 3/3 PASS ✅
+- Test 2: Continuation pages in free blocks - 5/5 PASS ✅
+- Test 3: Block heads vs continuation pages - 6/6 PASS ✅
+- **Total: 11/11 tests PASS** ✅
+
+**Comprehensive Testing**:
+- Original test suite: 131,244 assertions - 100% PASS ✅
+- Alex's continuation tests: 195 tests - 100% PASS ✅
+- Athena's independent tests: 11 tests - 100% PASS ✅
+- **Total validation: 131,450 assertions PASS**
+
+**Performance**:
+- Execution time: 91ms (local tests)
+- OJ Limit: 10,000ms
+- Headroom: 110x faster than limit ✅
+
+**Code Quality**:
+- Compiler warnings: 0 ✅
+- Build: Clean ✅
+- Executable: `code` (correct name) ✅
+
+**Repository State**:
+- Latest commit: f3eeadc [Ares] Fix query_ranks() stale free header bug
+- Branch: master (pushed to origin)
+- Build verified: `make` produces `code` with no warnings
+
+**Success Criteria**: ALL MET ✓
+- ✅ All tests pass (131,450+ assertions)
+- ✅ Stale metadata bug fixed and verified
+- ✅ Performance within OJ limits
+- ✅ Zero compiler warnings
+- ✅ Independent verification complete
+- ✅ Code pushed to GitHub
+
+**Athena's Assessment**: ✅ READY FOR OJ SUBMISSION #3
+
+**Confidence**: 95%
+
+**Rationale**:
+1. Three independent blind analyses converged on root cause (Sophia, Elena, Oliver)
+2. Fix addresses exact issues identified (always search + range check)
+3. All 131,450 test assertions pass (100% success rate)
+4. Multiple layers of independent verification (Diana, Ares, Athena)
+5. Performance excellent (110x faster than OJ limit)
+6. Clean build, zero warnings
+7. Code logic verified correct through independent testing
+
+**Lesson Learned**: 
+- Multiple fix iterations required (f927c2a → 01888b6 → f3eeadc)
+- Final fix removed early return optimization, made logic simpler
+- Key insight: `head_idx <= idx` enables checking if idx itself is a block head
+- Independent verification at each stage caught edge cases
+
+---
+
+## PROJECT STATUS - READY FOR FINAL OJ SUBMISSION
+
+**Submission Budget**: 1/3 remaining (FINAL ATTEMPT)
+
+**Quality Metrics**:
+- Test assertions passing: 131,450+
+- Performance: 91ms (110x faster than limit)
+- Code quality: Clean, well-documented, verified
+- Confidence: 95% (multiple independent verifications)
+
+**Implementation Complete**:
+- All 5 buddy allocator functions implemented ✅
+- Performance optimized (150x speedup from first submission) ✅
+- Stale metadata bug fixed ✅
+- Build system correct ✅
+- All tests passing ✅
+
+**Next Action**: Mark project complete for external OJ submission
+
+---
+
+**Last Updated**: Cycle 28 (Athena - M5 Verification Complete)
