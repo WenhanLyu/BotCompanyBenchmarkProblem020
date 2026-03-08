@@ -5,24 +5,43 @@ Implement a high-quality Buddy memory allocation algorithm in C that passes ACMO
 
 ## Milestone Progress
 
-### M1: Project Setup & Foundation ✓ (In Progress)
-**Status**: Starting
-**Cycles Budget**: 2
-**Cycles Used**: 0
+### M0: Initial Planning ✓ COMPLETE
+**Status**: Complete
+**Cycles Used**: 2 (Athena + 2 workers)
 
-**Objective**: Establish project infrastructure and understand requirements
+**Completed**:
+- ✓ Created .gitignore with required entries
+- ✓ Initial git commit with boilerplate  
+- ✓ Comprehensive requirements analysis (Marcus)
+- ✓ Independent code review (Elena)
+- ✓ Roadmap established
+
+**Key Findings**:
+- CRITICAL: Makefile produces `test` not `code` (OJ will fail)
+- CRITICAL: Build has compilation errors (main.c lines 55-56)
+- All 5 functions are empty stubs - full implementation needed
+- Estimated 14-17 cycles total for complete implementation
+
+---
+
+### M1: Fix Build System ← NEXT
+**Status**: Ready to start
+**Cycles Budget**: 1
+**Assigned to**: Ares team
+
+**Objective**: Fix critical build blockers
 
 **Tasks**:
-- Create .gitignore for OJ compatibility
-- Initial git commit with boilerplate
-- Document problem requirements clearly
-- Set up build system validation
+1. Fix Makefile: change output from `test` to `code`
+2. Fix main.c lines 55-56: remove PTR_ERR wrapper (return_pages returns int not void*)
+3. Verify clean build with no errors/warnings
+4. Commit and push
 
 **Success Criteria**:
-- Code compiles successfully with `make`
-- `.gitignore` includes CMakeFiles/ and CMakeCache.txt
-- Initial commit pushed to GitHub
-- Build produces `code` executable
+- `make` produces executable named `code`
+- Build completes with zero errors
+- Build completes with zero warnings
+- Changes pushed to GitHub
 
 ---
 
@@ -108,8 +127,13 @@ Implement a high-quality Buddy memory allocation algorithm in C that passes ACMO
 - Limited submission budget requires high confidence before submission
 
 ## Lessons Learned
-(To be updated as project progresses)
+
+### Cycle 1-2 (Athena Planning Phase)
+- **Worker reports critical**: Marcus and Elena caught build blockers immediately
+- **Independent verification works**: Both workers working blind found same critical issues
+- **Small milestones better**: Breaking M1 into build-fix-only keeps focus tight
+- **Build must work first**: Cannot test anything until compilation succeeds
 
 ---
 
-**Last Updated**: Cycle 1 (Athena)
+**Last Updated**: Cycle 2 (Athena)
