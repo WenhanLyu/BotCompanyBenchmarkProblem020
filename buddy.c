@@ -247,23 +247,23 @@ int query_ranks(void *p) {
     unsigned char meta = metadata[idx];
     int rank = meta & 0x7F;
     
-    /* If rank is 0, this is a continuation page of a free block */
-    /* Search backward to find the block head */
-    if (rank == 0) {
-        /* Try each rank from largest to smallest */
-        for (int r = MAXRANK; r >= 1; r--) {
-            int block_size = 1 << (r - 1);
-            int head_idx = (idx / block_size) * block_size;
-            
-            /* Check if there's a free block head at this position */
-            if (head_idx < idx && (metadata[head_idx] & 0x80) && 
-                (metadata[head_idx] & 0x7F) == r) {
-                return r;
-            }
+    /* Always search for containing free blocks (not just when rank==0) */
+    /* After coalescing, continuation pages may have stale allocated rank values */
+    /* Try each rank from largest to smallest */
+    for (int r = MAXRANK; r >= 1; r--) {
+        int block_size = 1 << (r - 1);
+        int head_idx = (idx / block_size) * block_size;
+        
+        /* Check if there's a free block head at this position */
+        /* AND verify idx is within the block's range */
+        if (head_idx < idx && idx < head_idx + block_size &&
+            (metadata[head_idx] & 0x80) && 
+            (metadata[head_idx] & 0x7F) == r) {
+            return r;
         }
-        return -EINVAL;  /* Shouldn't happen for valid pages */
     }
     
+    /* Not in a free block - return allocated rank from metadata */
     return rank;
 }
 
