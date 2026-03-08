@@ -24,84 +24,165 @@ Implement a high-quality Buddy memory allocation algorithm in C that passes ACMO
 
 ---
 
-### M1: Fix Build System ← NEXT
-**Status**: Ready to start
+### M1: Fix Build System ✓ COMPLETE
+**Status**: Complete
 **Cycles Budget**: 1
-**Assigned to**: Ares team
+**Cycles Used**: 1 (Ares team)
 
 **Objective**: Fix critical build blockers
 
-**Tasks**:
-1. Fix Makefile: change output from `test` to `code`
-2. Fix main.c lines 55-56: remove PTR_ERR wrapper (return_pages returns int not void*)
-3. Verify clean build with no errors/warnings
-4. Commit and push
+**Completed**:
+1. ✓ Fixed Makefile: changed output from `test` to `code`
+2. ✓ Fixed main.c lines 55-56: removed PTR_ERR wrapper
+3. ✓ Verified clean build with no errors/warnings
+4. ✓ Committed and pushed (commit fad711c)
 
-**Success Criteria**:
-- `make` produces executable named `code`
-- Build completes with zero errors
-- Build completes with zero warnings
-- Changes pushed to GitHub
+**Success Criteria**: All met
+- ✓ `make` produces executable named `code`
+- ✓ Build completes with zero errors
+- ✓ Build completes with zero warnings
+- ✓ Changes pushed to GitHub
+
+**Lesson Learned**: With N-cycle budget, need N-1 for workers + 1 for manager to verify, OR schedule verification in same cycle with workers.
 
 ---
 
-### M2: Core Buddy Algorithm Implementation (Planned)
-**Status**: Planned
-**Cycles Budget**: 8
+### M2.1: Data Structures and Basic Init ← NEXT
+**Status**: Ready to start
+**Cycles Budget**: 3
+**Assigned to**: Ares team
 
-**Objective**: Implement the five required functions with correct Buddy algorithm logic
+**Objective**: Design and implement core data structures + init_page()
 
-**Key Components**:
-1. Data structures for managing free lists per rank (1-16)
-2. `init_page()`: Initialize memory pool and free lists
-3. `alloc_pages()`: Split blocks as needed, allocate from appropriate rank
-4. `return_pages()`: Return blocks and coalesce buddies
-5. `query_ranks()`: Track allocated/free block ranks
-6. `query_page_counts()`: Count available blocks per rank
+**Tasks**:
+1. Design data structures:
+   - Free list structure (doubly-linked for O(1) removal)
+   - Metadata array to track page ranks
+   - Global allocator state
+2. Implement `init_page()`:
+   - Initialize free lists for ranks 1-16
+   - Organize initial memory as max-rank blocks
+   - Store base pointer and total pages
+3. Implement `query_page_counts()`:
+   - Count free blocks at specified rank
+   - Validate rank input (1-16)
 
 **Success Criteria**:
-- All functions implemented with proper error handling
-- Basic logic for splitting and coalescing works
+- Data structures documented and clear
+- `init_page()` creates correct initial state
+- Phase 1 test passes (initialization)
+- Phase 3 can verify all ranks empty after allocation
+- Code compiles without warnings
+- Changes committed and pushed
+
+**Why This Scope**:
+- Foundation must be solid before building allocation logic
+- query_page_counts is simple and validates free list tracking
+- 3 cycles allows careful design + implementation + testing
+
+---
+
+### M2.2: Block Allocation with Splitting (Planned)
+**Status**: Planned  
+**Cycles Budget**: 4
+
+**Objective**: Implement alloc_pages() with buddy splitting algorithm
+
+**Tasks**:
+1. Implement `alloc_pages()`:
+   - Validate rank (1-16, return -EINVAL if invalid)
+   - Search free list for requested rank
+   - If not available, split larger blocks recursively
+   - Mark allocated blocks and update metadata
+   - Return -ENOSPC when out of memory
+2. Update metadata tracking for ALL pages in block
+3. Ensure sequential allocation order (left-to-right)
+
+**Success Criteria**:
+- Phase 2 passes: allocate all 32,768 pages sequentially
+- Out-of-memory error handling works
+- Invalid rank handling works
+- All allocated pages tracked correctly
 - Code compiles without warnings
 
 ---
 
-### M3: Testing & Bug Fixes (Planned)
-**Status**: Planned
-**Cycles Budget**: 6
-
-**Objective**: Test against provided test suite and fix issues
-
-**Tasks**:
-- Run local tests with provided main.c
-- Debug failures in each test phase
-- Verify boundary conditions
-- Handle edge cases (NULL, invalid ranks, out of memory)
-
-**Success Criteria**:
-- All 8 test phases pass locally
-- No segmentation faults or memory errors
-- Output matches expected format
-
----
-
-### M4: Code Quality & OJ Submission Prep (Planned)
+### M2.3: Block Deallocation and Queries (Planned)
 **Status**: Planned
 **Cycles Budget**: 3
 
-**Objective**: Polish code and ensure OJ compatibility
+**Objective**: Implement return_pages() (basic) + query_ranks()
 
 **Tasks**:
-- Code review for efficiency and correctness
-- Verify time/space complexity requirements
-- Final build system check
-- Documentation review
+1. Implement `return_pages()` WITHOUT coalescing:
+   - Validate pointer (NULL check, bounds check)
+   - Return -EINVAL for invalid pointers
+   - Add block back to free list at its rank
+   - Mark as deallocated
+2. Implement `query_ranks()`:
+   - Look up rank from metadata
+   - Handle allocated vs free blocks
+   - Validate pointer
 
 **Success Criteria**:
-- Code follows C best practices
-- No unnecessary complexity
-- Ready for external OJ evaluation
-- All requirements from README.md met
+- Phase 4 passes: return all pages with validation
+- Phase 6-7 pass: query ranks correctly
+- Invalid pointer handling works
+- Code compiles without warnings
+
+**Note**: This milestone does NOT include coalescing - that's M2.4
+
+---
+
+### M2.4: Buddy Coalescing (Planned)
+**Status**: Planned
+**Cycles Budget**: 6
+
+**Objective**: Implement buddy coalescing in return_pages()
+
+**Tasks**:
+1. Implement buddy address calculation: `buddy_idx = idx ^ (1 << (rank-1))`
+2. Check if buddy is free AND same rank
+3. If yes: remove buddy from free list, merge into rank+1, recurse
+4. If no: add block to free list at current rank
+5. Handle edge cases:
+   - Buddy at boundary (out of total pages range)
+   - Termination at MAXRANK
+   - Proper metadata updates during coalescing
+
+**Success Criteria**:
+- Phase 5 passes: all pages coalesce back to MAXRANK
+- Phase 8A passes: progressive coalescing pattern
+- Phase 8B passes: alternating free pattern
+- All 131,246 test assertions pass
+- Code compiles without warnings
+
+**Why 6 Cycles**:
+- Coalescing is the hardest part (most edge cases)
+- Need multiple iterations to debug complex patterns
+- Phase 8A and 8B are integration tests with tricky scenarios
+
+---
+
+### M3: Final Code Review and OJ Readiness (Planned)
+**Status**: Planned
+**Cycles Budget**: 2
+
+**Objective**: Final verification and polish before marking complete
+
+**Tasks**:
+- Independent verification: all 8 test phases pass
+- Code review for edge cases and error handling
+- Performance check (time/space complexity)
+- Final build verification
+- Documentation check
+
+**Success Criteria**:
+- All 131,246 test assertions pass
+- No compiler warnings
+- Build produces `code` executable correctly
+- Code ready for external OJ evaluation
+- All requirements from README.md verified
 
 ---
 
@@ -134,6 +215,23 @@ Implement a high-quality Buddy memory allocation algorithm in C that passes ACMO
 - **Small milestones better**: Breaking M1 into build-fix-only keeps focus tight
 - **Build must work first**: Cannot test anything until compilation succeeds
 
+### Cycle 3-7 (M1 Implementation + Research)
+- **M1 technically complete**: Leo fixed build in 1 cycle (commit fad711c)
+- **Procedural issue**: With 1/1 budget, no cycle left for Ares to formally complete
+- **Lesson**: Need buffer cycle for manager OR schedule verification with workers
+- **Research investment pays off**: 4 workers did deep research (Sophia, Oliver, Elena, Marcus)
+  - Comprehensive algorithm understanding (Sophia: 9000+ words)
+  - Complete test analysis (Oliver: all 8 phases documented)
+  - Independent code assessment (Elena: current state + gaps)
+  - Requirements validation (Marcus: edge cases, constraints)
+- **Breaking M2 into sub-milestones**: Original M2 (8 cycles) too large
+  - M2.1: Data structures + init (3 cycles)
+  - M2.2: Allocation + splitting (4 cycles)
+  - M2.3: Deallocation + queries (3 cycles)  
+  - M2.4: Coalescing (6 cycles - the hard part)
+  - Total: 16 cycles, more realistic given complexity
+- **Coalescing is the critical risk**: Phases 5, 8A, 8B all depend on correct buddy merging
+
 ---
 
-**Last Updated**: Cycle 2 (Athena)
+**Last Updated**: Cycle 8 (Athena - after M1 deadline miss)
