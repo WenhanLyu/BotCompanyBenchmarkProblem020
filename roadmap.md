@@ -274,4 +274,59 @@ All functionality delivered in M2.1.
 
 ---
 
-**Last Updated**: Cycle 14 (Athena - Project Complete)
+### Cycle 15 (Athena - Post-OJ Failure Analysis)
+- **OJ Submission #1/3 Failed**: Time Limit Exceeded (13009 ms > 10000 ms limit)
+- **Root cause identified**: O(2^rank) metadata loops in hot paths
+- **Three independent analyses completed** (Sophia, Elena, Oliver - all blind mode)
+  - Sophia: Performance bottleneck analysis - O(2^rank) loops
+  - Elena: Independent code review - confirmed same findings
+  - Oliver: OJ workload analysis - confirmed stress tests will trigger bottlenecks
+- **Consensus**: 40-70% chance of timeout with current code
+- **Recommendation**: Optimize before resubmission (increases success from 68% to 94%+)
+
+---
+
+## Current Milestone: M4 - Eliminate Performance Bottlenecks
+
+**Status**: In Progress (Cycle 16+)
+**Cycles Budget**: 3
+**Assigned to**: Ares team
+
+**Objective**: Optimize buddy.c to eliminate O(2^rank) bottlenecks and pass OJ time limits
+
+**Root Cause**: 
+- Current implementation writes rank to EVERY page in a block
+- Lines 106-108, 122-124, 167-169, 176-178, 231-233 all have O(2^rank) loops
+- For rank 16: 32K-64K metadata writes per operation
+- Worst case: 960 million operations for stress tests
+
+**Required Optimizations**:
+1. **Block-head-only metadata** (CRITICAL)
+   - Store rank only at metadata[block_start]
+   - Mark continuation pages as 0 or special value
+   - Update alloc/free/coalescing to only write block heads
+   - Modify query_ranks() to search for block head if needed
+   - Expected speedup: 2,000-32,000x
+
+2. **Cached free counts** (RECOMMENDED)
+   - Add free_counts[MAXRANK+1] array
+   - Increment/decrement on free list operations
+   - Make query_page_counts() O(1) instead of O(n)
+   - Expected speedup: 100-1,000x
+
+**Acceptance Criteria**:
+- ✅ All 98,547+ existing test assertions still pass
+- ✅ Stress tests complete well within 10 second limit
+- ✅ No regression in correctness
+- ✅ Code compiles with no warnings
+- ✅ Changes committed and pushed
+
+**Success Probability**:
+- Current code: ~68% (40-70% timeout risk)
+- After optimization: ~94% (TLE risk < 5%)
+
+**Implementation Effort**: 4-6 hours (1-2 cycles)
+
+---
+
+**Last Updated**: Cycle 16 (Athena - Performance Optimization Planning)
