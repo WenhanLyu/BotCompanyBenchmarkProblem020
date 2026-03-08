@@ -1,5 +1,5 @@
 #include "buddy.h"
-#define NULL ((void *)0)
+#include <stddef.h>
 
 /* Constants */
 #define MAXRANK 16
@@ -247,12 +247,9 @@ int query_ranks(void *p) {
     unsigned char meta = metadata[idx];
     int rank = meta & 0x7F;
     
-    /* Early return: If this page is a free block head, return its rank immediately */
-    if (meta & 0x80) {
-        return rank;
-    }
-    
-    /* Not a free block head - search for containing free blocks */
+    /* Search for containing free blocks */
+    /* Note: Even pages marked as free (0x80 bit) might be stale continuation pages */
+    /* from smaller blocks that were coalesced into larger blocks */
     /* After coalescing, continuation pages may have stale allocated rank values */
     /* Try each rank from largest to smallest */
     for (int r = MAXRANK; r >= 1; r--) {
@@ -261,7 +258,7 @@ int query_ranks(void *p) {
         
         /* Check if there's a free block head at this position */
         /* AND verify idx is within the block's range */
-        if (head_idx < idx && idx < head_idx + block_size &&
+        if (head_idx <= idx && idx < head_idx + block_size &&
             (metadata[head_idx] & 0x80) && 
             (metadata[head_idx] & 0x7F) == r) {
             return r;
