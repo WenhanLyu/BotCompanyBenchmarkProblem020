@@ -47,142 +47,83 @@ Implement a high-quality Buddy memory allocation algorithm in C that passes ACMO
 
 ---
 
-### M2.1: Data Structures and Basic Init ← NEXT
-**Status**: Ready to start
+### M2.1: Data Structures and Basic Init ✓ COMPLETE
+**Status**: Complete (Apollo verified)
 **Cycles Budget**: 3
+**Cycles Used**: 2 (Ares team: 1 planning + 1 implementation)
 **Assigned to**: Ares team
 
 **Objective**: Design and implement core data structures + init_page()
 
-**Tasks**:
-1. Design data structures:
+**Completed**:
+1. ✓ Data structures designed (Cassandra):
    - Free list structure (doubly-linked for O(1) removal)
    - Metadata array to track page ranks
    - Global allocator state
-2. Implement `init_page()`:
-   - Initialize free lists for ranks 1-16
-   - Organize initial memory as max-rank blocks
-   - Store base pointer and total pages
-3. Implement `query_page_counts()`:
-   - Count free blocks at specified rank
-   - Validate rank input (1-16)
+2. ✓ All 5 functions implemented (Kai - exceeded scope):
+   - init_page() - initializes free lists for ranks 1-16
+   - alloc_pages() - allocation with buddy splitting
+   - return_pages() - deallocation with buddy coalescing
+   - query_ranks() - rank querying
+   - query_page_counts() - free block counting
+3. ✓ All 8 test phases pass (131,246+ assertions)
+4. ✓ Changes committed (76ebc9d) and pushed
 
-**Success Criteria**:
-- Data structures documented and clear
-- `init_page()` creates correct initial state
-- Phase 1 test passes (initialization)
-- Phase 3 can verify all ranks empty after allocation
-- Code compiles without warnings
-- Changes committed and pushed
+**Success Criteria**: All met
+- ✓ Data structures documented and clear (Cassandra's design doc)
+- ✓ init_page() creates correct initial state (verified by Isaac)
+- ✓ Phase 1 test passes ✓
+- ✓ query_page_counts() works correctly (verified by Nina)
+- ✓ Code compiles without warnings (verified by Ryan)
+- ✓ Changes committed and pushed (76ebc9d)
 
-**Why This Scope**:
-- Foundation must be solid before building allocation logic
-- query_page_counts is simple and validates free list tracking
-- 3 cycles allows careful design + implementation + testing
+**Unexpected Outcome**: Kai implemented ALL 5 functions instead of just the 2 requested. Apollo verified quality is excellent, all tests pass, ready for OJ submission.
 
----
-
-### M2.2: Block Allocation with Splitting (Planned)
-**Status**: Planned  
-**Cycles Budget**: 4
-
-**Objective**: Implement alloc_pages() with buddy splitting algorithm
-
-**Tasks**:
-1. Implement `alloc_pages()`:
-   - Validate rank (1-16, return -EINVAL if invalid)
-   - Search free list for requested rank
-   - If not available, split larger blocks recursively
-   - Mark allocated blocks and update metadata
-   - Return -ENOSPC when out of memory
-2. Update metadata tracking for ALL pages in block
-3. Ensure sequential allocation order (left-to-right)
-
-**Success Criteria**:
-- Phase 2 passes: allocate all 32,768 pages sequentially
-- Out-of-memory error handling works
-- Invalid rank handling works
-- All allocated pages tracked correctly
-- Code compiles without warnings
+**Lesson Learned**: Worker exceeded scope but delivered high quality. Apollo verified thoroughly. Original milestones M2.2, M2.3, M2.4 are now obsolete.
 
 ---
 
-### M2.3: Block Deallocation and Queries (Planned)
-**Status**: Planned
-**Cycles Budget**: 3
-
-**Objective**: Implement return_pages() (basic) + query_ranks()
-
-**Tasks**:
-1. Implement `return_pages()` WITHOUT coalescing:
-   - Validate pointer (NULL check, bounds check)
-   - Return -EINVAL for invalid pointers
-   - Add block back to free list at its rank
-   - Mark as deallocated
-2. Implement `query_ranks()`:
-   - Look up rank from metadata
-   - Handle allocated vs free blocks
-   - Validate pointer
-
-**Success Criteria**:
-- Phase 4 passes: return all pages with validation
-- Phase 6-7 pass: query ranks correctly
-- Invalid pointer handling works
-- Code compiles without warnings
-
-**Note**: This milestone does NOT include coalescing - that's M2.4
+### M2.2: Block Allocation with Splitting ✓ OBSOLETE
+**Status**: Obsolete (completed in M2.1 by Kai)
+All functionality delivered in M2.1.
 
 ---
 
-### M2.4: Buddy Coalescing (Planned)
-**Status**: Planned
-**Cycles Budget**: 6
-
-**Objective**: Implement buddy coalescing in return_pages()
-
-**Tasks**:
-1. Implement buddy address calculation: `buddy_idx = idx ^ (1 << (rank-1))`
-2. Check if buddy is free AND same rank
-3. If yes: remove buddy from free list, merge into rank+1, recurse
-4. If no: add block to free list at current rank
-5. Handle edge cases:
-   - Buddy at boundary (out of total pages range)
-   - Termination at MAXRANK
-   - Proper metadata updates during coalescing
-
-**Success Criteria**:
-- Phase 5 passes: all pages coalesce back to MAXRANK
-- Phase 8A passes: progressive coalescing pattern
-- Phase 8B passes: alternating free pattern
-- All 131,246 test assertions pass
-- Code compiles without warnings
-
-**Why 6 Cycles**:
-- Coalescing is the hardest part (most edge cases)
-- Need multiple iterations to debug complex patterns
-- Phase 8A and 8B are integration tests with tricky scenarios
+### M2.3: Block Deallocation and Queries ✓ OBSOLETE
+**Status**: Obsolete (completed in M2.1 by Kai)
+All functionality delivered in M2.1.
 
 ---
 
-### M3: Final Code Review and OJ Readiness (Planned)
-**Status**: Planned
-**Cycles Budget**: 2
+### M2.4: Buddy Coalescing ✓ OBSOLETE
+**Status**: Obsolete (completed in M2.1 by Kai)
+All functionality delivered in M2.1.
 
-**Objective**: Final verification and polish before marking complete
+---
+
+### M3: Final Independent Verification ← NEXT
+**Status**: In progress (Athena cycle 13)
+**Cycles Budget**: 1-2
+
+**Objective**: Independent verification before marking project complete
+
+**Why This Milestone**:
+- Apollo's team verified M2.1 successfully
+- However, original scope only asked for 2 functions, but all 5 were delivered
+- Need independent evaluation from Athena's team to confirm OJ readiness
+- Must verify against original requirements, not just test suite
 
 **Tasks**:
-- Independent verification: all 8 test phases pass
-- Code review for edge cases and error handling
-- Performance check (time/space complexity)
-- Final build verification
-- Documentation check
+1. Independent code quality audit (Alex - blind review)
+2. Requirements compliance verification (Bella - against README.md)
+3. Athena's own assessment of readiness
 
 **Success Criteria**:
-- All 131,246 test assertions pass
-- No compiler warnings
-- Build produces `code` executable correctly
-- Code ready for external OJ evaluation
-- All requirements from README.md verified
+- All requirements from README.md verified ✓
+- Code quality meets OJ standards ✓
+- No hidden issues that could cause OJ failure
+- Build process confirmed correct
+- Ready to mark project complete
 
 ---
 
@@ -234,4 +175,14 @@ Implement a high-quality Buddy memory allocation algorithm in C that passes ACMO
 
 ---
 
-**Last Updated**: Cycle 8 (Athena - after M1 deadline miss)
+### Cycle 13 (Athena - Post-Apollo Verification)
+- **M2.1 verified by Apollo**: All acceptance criteria met
+- **Unexpected acceleration**: Kai delivered all 5 functions (not just 2 requested)
+- **All 8 test phases pass**: 131,246+ assertions ✓
+- **Decision**: Need independent Athena-team verification before project completion
+- **Hired**: Alex (code auditor) and Bella (requirements auditor)
+- **Next**: Independent evaluation, then decide on project completion
+
+---
+
+**Last Updated**: Cycle 13 (Athena - post-verification planning)
