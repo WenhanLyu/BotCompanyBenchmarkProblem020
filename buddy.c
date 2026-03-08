@@ -15,6 +15,7 @@ typedef struct free_node {
 static void *base_ptr = NULL;           /* Start of managed memory */
 static int total_pages = 0;             /* Total number of pages */
 static free_node_t *free_lists[MAXRANK + 1];  /* Free lists for ranks 1-16 */
+static int free_counts[MAXRANK + 1];    /* Cached count of free blocks per rank */
 
 /* Metadata stored at end of address space - we'll use malloc to allocate it separately */
 static unsigned char *metadata = NULL;
@@ -43,6 +44,7 @@ static void add_to_free_list(int rank, void *p) {
         free_lists[rank]->prev = node;
     }
     free_lists[rank] = node;
+    free_counts[rank]++;  /* Increment cached count */
 }
 
 /* Helper: Remove page from free list */
@@ -59,6 +61,8 @@ static void remove_from_free_list(int rank, void *p) {
     if (node->next != NULL) {
         node->next->prev = node->prev;
     }
+    
+    free_counts[rank]--;  /* Decrement cached count */
 }
 
 /* Helper: Calculate buddy index */
@@ -83,9 +87,10 @@ int init_page(void *p, int pgcount) {
     total_pages = pgcount;
     metadata = metadata_storage;
     
-    /* Initialize free lists */
+    /* Initialize free lists and counts */
     for (int i = 0; i <= MAXRANK; i++) {
         free_lists[i] = NULL;
+        free_counts[i] = 0;
     }
     
     /* Initialize metadata to 0 */
@@ -102,10 +107,9 @@ int init_page(void *p, int pgcount) {
         void *block = get_page_ptr(start_page);
         add_to_free_list(MAXRANK, block);
         
-        /* Mark all pages in this block */
-        for (int i = 0; i < max_block_size; i++) {
-            metadata[start_page + i] = 0x80 | MAXRANK;  /* Free + rank 16 */
-        }
+        /* OPTIMIZATION: Only mark the block head (first page) */
+        metadata[start_page] = 0x80 | MAXRANK;  /* Free + rank 16 */
+        /* Continuation pages remain 0 (implicit) */
         
         start_page += max_block_size;
         remaining_pages -= max_block_size;
@@ -118,10 +122,9 @@ int init_page(void *p, int pgcount) {
             void *block = get_page_ptr(start_page);
             add_to_free_list(rank, block);
             
-            /* Mark all pages in this block */
-            for (int i = 0; i < block_size; i++) {
-                metadata[start_page + i] = 0x80 | rank;
-            }
+            /* OPTIMIZATION: Only mark the block head (first page) */
+            metadata[start_page] = 0x80 | rank;
+            /* Continuation pages remain 0 (implicit) */
             
             start_page += block_size;
             remaining_pages -= block_size;
@@ -163,10 +166,9 @@ void *alloc_pages(int rank) {
         int right_idx = left_idx + block_size;
         void *right_block = get_page_ptr(right_idx);
         
-        /* Mark right block as free at current_rank */
-        for (int i = 0; i < block_size; i++) {
-            metadata[right_idx + i] = 0x80 | current_rank;
-        }
+        /* OPTIMIZATION: Only mark right block head as free */
+        metadata[right_idx] = 0x80 | current_rank;
+        /* Continuation pages remain 0 (implicit) */
         add_to_free_list(current_rank, right_block);
     }
     
@@ -227,10 +229,9 @@ int return_pages(void *p) {
     
     /* Add coalesced block to free list */
     void *block = get_page_ptr(idx);
-    int block_size = 1 << (rank - 1);
-    for (int i = 0; i < block_size; i++) {
-        metadata[idx + i] = 0x80 | rank;
-    }
+    /* OPTIMIZATION: Only mark block head as free */
+    metadata[idx] = 0x80 | rank;
+    /* Continuation pages don't need updating for free blocks */
     add_to_free_list(rank, block);
     
     return OK;
@@ -243,7 +244,27 @@ int query_ranks(void *p) {
         return -EINVAL;
     }
     
-    return metadata[idx] & 0x7F;  /* Return rank (without free bit) */
+    unsigned char meta = metadata[idx];
+    int rank = meta & 0x7F;
+    
+    /* If rank is 0, this is a continuation page of a free block */
+    /* Search backward to find the block head */
+    if (rank == 0) {
+        /* Try each rank from largest to smallest */
+        for (int r = MAXRANK; r >= 1; r--) {
+            int block_size = 1 << (r - 1);
+            int head_idx = (idx / block_size) * block_size;
+            
+            /* Check if there's a free block head at this position */
+            if (head_idx < idx && (metadata[head_idx] & 0x80) && 
+                (metadata[head_idx] & 0x7F) == r) {
+                return r;
+            }
+        }
+        return -EINVAL;  /* Shouldn't happen for valid pages */
+    }
+    
+    return rank;
 }
 
 /* Query page counts */
@@ -253,13 +274,6 @@ int query_page_counts(int rank) {
         return -EINVAL;
     }
     
-    /* Count nodes in free list */
-    int count = 0;
-    free_node_t *node = free_lists[rank];
-    while (node != NULL) {
-        count++;
-        node = node->next;
-    }
-    
-    return count;
+    /* OPTIMIZATION: Return cached count (O(1) instead of O(n)) */
+    return free_counts[rank];
 }
